@@ -4,8 +4,8 @@ tool helps underwriters quickly analyze financial documents of SBA loan applican
 
 ## Features
 
-- Multi-Document upload on front-end -> OCR with tesseract -> text
-- text split into chunks, converted to embeddings and then those (+ metadata) stored chromaDB vector DB to support RAG
+- Multi-Document upload on front-end -> OCR with tesseract -> text -> stored in chroma vector DB to support RAG
+- (skipped text chunking and embedding)
 - the undderwriter can then ask questions ab the uploaded documents in natural lang
 
 ## Back-End REST Routes
