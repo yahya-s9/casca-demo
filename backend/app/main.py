@@ -18,10 +18,14 @@ load_dotenv()
 api_key = os.getenv("CLAUDE_API_KEY")
 if not api_key:
     print("[ERROR] CLAUDE_API_KEY not found in environment variables")
+    raise ValueError("CLAUDE_API_KEY environment variable is required")
+elif not api_key.startswith("sk-"):
+    print("[ERROR] Invalid CLAUDE_API_KEY format - should start with 'sk-'")
+    raise ValueError("Invalid CLAUDE_API_KEY format")
 else:
-    print("[INFO] Claude API key loaded successfully")
+    print(f"[INFO] Claude API key loaded successfully (starts with: {api_key[:7]}...)")
 
-app = FastAPI(title="Casca Demo API")
+app = FastAPI(title="SBA Loan Underwriting Assistant")
 
 # Configure CORS
 app.add_middleware(
@@ -33,15 +37,25 @@ app.add_middleware(
 )
 
 # Initialize ChromaDB
-chroma_client = chromadb.Client()
-collection = chroma_client.create_collection(name="documents")
+print("[STARTUP] Initializing ChromaDB...")
+chroma_client = chromadb.PersistentClient(path="./chroma_db")
+try:
+    collection = chroma_client.get_collection(name="documents")
+    print(f"[STARTUP] Retrieved existing collection 'documents'")
+    # Print collection stats
+    collection_count = collection.count()
+    print(f"[STARTUP] Collection contains {collection_count} documents")
+except ValueError:
+    print("[STARTUP] Creating new collection 'documents'")
+    collection = chroma_client.create_collection(name="documents")
+    print("[STARTUP] New collection created")
 
 # Initialize Anthropic client
 anthropic = Anthropic(api_key=api_key)
 
 class Question(BaseModel):
     text: str
-    document_id: str
+    document_ids: List[str]
 
 class DocumentResponse(BaseModel):
     id: str
@@ -93,29 +107,41 @@ async def upload_document(file: UploadFile = File(...)):
 @app.post("/ask")
 async def ask_question(question: Question):
     """
-    Ask a question about a specific document
+    Ask a question about multiple documents
     """
     try:
-        print(f"[ASK] Received question: {question.text} for document: {question.document_id}")
+        print(f"[ASK] Received question: {question.text} for documents: {question.document_ids}")
         
-        # Retrieve document from ChromaDB
-        result = collection.get(ids=[question.document_id])
-        if not result["documents"]:
-            print(f"[ASK] Document not found: {question.document_id}")
-            raise HTTPException(status_code=404, detail="Document not found")
+        # Retrieve all documents from ChromaDB
+        try:
+            results = collection.get(ids=question.document_ids)
+            print(f"[ASK] ChromaDB results: {results}")
+        except Exception as chroma_error:
+            print(f"[ASK ERROR] ChromaDB error: {str(chroma_error)}")
+            raise HTTPException(status_code=500, detail=f"Error retrieving documents: {str(chroma_error)}")
+
+        if not results["documents"]:
+            print(f"[ASK] No documents found for IDs: {question.document_ids}")
+            raise HTTPException(status_code=404, detail="Documents not found")
         
-        document_text = result["documents"][0]
-        print(f"[ASK] Retrieved document text length: {len(document_text)}")
+        # Combine all document texts
+        all_documents = []
+        for doc_text, metadata in zip(results["documents"], results["metadatas"]):
+            all_documents.append(f"Document: {metadata['filename']}\n{doc_text}\n")
+        
+        combined_text = "\n---\n".join(all_documents)
+        print(f"[ASK] Retrieved {len(all_documents)} documents")
+        print(f"[ASK] Combined text length: {len(combined_text)}")
         
         # Prepare prompt for Claude
-        prompt = f"""You are an expert underwriter assistant. Please analyze the following document text and answer the question.
+        prompt = f"""You are an expert SBA loan underwriter assistant. Please analyze the following documents together and answer the question.
         
-Document text:
-{document_text}
+Documents:
+{combined_text}
 
 Question: {question.text}
 
-Please provide a clear, concise answer based only on the information present in the document. If the information is not available, say so."""
+Please provide a comprehensive answer based on all the information present in the documents. Consider how the documents relate to each other and provide insights that combine information from multiple documents when relevant. If certain information is not available, say so."""
 
         print("[ASK] Sending request to Claude...")
         try:
@@ -127,14 +153,20 @@ Please provide a clear, concise answer based only on the information present in 
             )
             print("[ASK] Received response from Claude")
         except Exception as api_error:
-            print(f"[ASK ERROR] Full error details: {str(api_error)}")
+            print(f"[ASK ERROR] Claude API error: {str(api_error)}")
             print(f"[ASK ERROR] API Key (first 4 chars): {api_key[:4] if api_key else 'None'}")
-            raise HTTPException(status_code=500, detail=str(api_error))
+            raise HTTPException(status_code=500, detail=f"Error calling Claude API: {str(api_error)}")
 
         return {"answer": response.content[0].text}
 
+    except HTTPException as he:
+        print(f"[ASK ERROR] HTTP Exception: {str(he)}")
+        raise he
     except Exception as e:
-        print(f"[ASK ERROR] {str(e)}")
+        print(f"[ASK ERROR] Unexpected error: {str(e)}")
+        print(f"[ASK ERROR] Error type: {type(e)}")
+        import traceback
+        print(f"[ASK ERROR] Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/documents")
