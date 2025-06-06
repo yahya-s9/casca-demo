@@ -1,44 +1,20 @@
 # Casca Demo - Document Analysis for Underwriting
 
-A modern document analysis tool that helps underwriters quickly extract and analyze information from business documents using AI.
+tool helps underwriters quickly analyze financial documents of SBA loan applicants, and then allows them to evaluate it
 
 ## Features
 
-- Document upload and OCR processing
-- AI-powered document analysis and question answering
-- Vector-based semantic search
-- Interactive document viewer
-- Natural language query interface
+- Multi-Document upload on front-end -> OCR with tesseract -> embedding and then chromaDB vector DB to support RAG
+- the undderwriter can then ask questions ab the uploaded documents in natural language
 
 ## Tech Stack
 
-- Frontend: Next.js 14 with TypeScript
-- Backend: Python FastAPI
+- Frontend: Next.js / TypeScript
+- Backend: Python / FastAPI
 - OCR: Tesseract
-- Vector Store: Chroma
+- Vector Store: ChromaDB
 - LLM: Claude API
 - Document Processing: PyPDF2, pdf2image
-
-## Project Structure
-
-```
-casca-demo/
-├── frontend/           # Next.js frontend application
-├── backend/           # FastAPI backend service
-│   ├── app/          # Application code
-│   ├── tests/        # Test suite
-│   └── requirements.txt
-└── docs/             # Documentation
-```
-
-## Getting Started
-
-### Prerequisites
-
-- Python 3.9+
-- Node.js 18+
-- Tesseract OCR
-- Claude API key
 
 ### Installation
 
@@ -81,7 +57,3 @@ casca-demo/
 - Backend API documentation available at `/docs` when running the server
 - Frontend development server runs on `http://localhost:3000`
 - Backend API runs on `http://localhost:8000`
-
-## License
-
-MIT
