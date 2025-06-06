@@ -235,6 +235,26 @@ export default function Home() {
               </div>
             </div>
           )}
+
+          {/* Evaluation Button */}
+          {documents.length > 0 && (
+            <div className="mt-12 border-t pt-8">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Loan Application Evaluation</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Generate a comprehensive evaluation report based on all uploaded documents
+                  </p>
+                </div>
+                <a
+                  href="/evaluation"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  Start Evaluation
+                </a>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </main>

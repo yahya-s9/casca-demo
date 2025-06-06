@@ -202,6 +202,65 @@ async def test_claude():
         print(f"[TEST ERROR] {str(e)}")
         return {"status": "error", "message": str(e)}
 
+@app.post("/generate-evaluation")
+async def generate_evaluation():
+    try:
+        # Get all documents from ChromaDB
+        results = collection.get()
+        if not results or not results['documents']:
+            raise HTTPException(status_code=404, detail="No documents found in the database")
+
+        # Combine all document content
+        all_content = "\n\n".join(results['documents'])
+        
+        # Create a prompt for Claude to generate the evaluation
+        prompt = f"""Based on the following loan application documents, generate a comprehensive evaluation report. 
+        The report should include:
+
+        1. Executive Summary
+        2. Business Analysis
+           - Company Overview
+           - Industry Analysis
+           - Market Position
+        3. Financial Analysis
+           - Revenue and Growth
+           - Profitability
+           - Cash Flow
+           - Key Financial Ratios
+        4. Risk Assessment
+           - Business Risks
+           - Market Risks
+           - Financial Risks
+        5. Loan Recommendation
+           - Recommended Amount
+           - Terms and Conditions
+           - Collateral Requirements
+        6. Supporting Documentation Review
+        7. Compliance Check
+        8. Final Decision and Justification
+
+        Documents:
+        {all_content}
+
+        Please provide a detailed, professional evaluation that an underwriter can use to make a final decision."""
+
+        # Call Claude API
+        response = anthropic.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=4000,
+            temperature=0.7,
+            system="You are an experienced SBA loan underwriter. Your task is to analyze loan application documents and provide a comprehensive evaluation report. Be thorough, professional, and objective in your analysis.",
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+
+        return {"evaluation": response.content[0].text}
+
+    except Exception as e:
+        print(f"[EVAL ERROR] Error generating evaluation: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000) 
