@@ -8,6 +8,12 @@ tool helps underwriters quickly analyze financial documents of SBA loan applican
 - text split into chunks, converted to embeddings and then those (+ metadata) stored chromaDB vector DB to support RAG
 - the undderwriter can then ask questions ab the uploaded documents in natural lang
 
+## Back-End REST Routes
+
+- /upload: accepts the uploaded images. Uses Tesseract OCR to extract text from each image.
+- /ask: Accepts a question + list of document IDs. Fetches from ChromaDB, prompts claude, relays response
+- /generate-evaluation: Pulls all documents and asks Claude to generate a full underwriting evaluation report
+
 ## Tech Stack
 
 - Frontend: Next.js / TypeScript
