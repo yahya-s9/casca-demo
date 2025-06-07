@@ -1,6 +1,7 @@
-# Casca Demo - Document Analysis for Underwriting
+# Financial Document Analyzer
+## Check out Devopst [here](https://devpost.com/software/financial-document-rag-system)
 
-tool helps underwriters quickly analyze financial documents of SBA loan applicants, and then allows them to evaluate it
+tool helps underwriters "chat" with financial documents 
 
 ## Features
 
